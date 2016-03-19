@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.7
-// @description  Provides direct links in Google Images.
+// @version      0.8
+// @description  Provides direct links in Google Images. 
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
 // @license      GPL version 2 or any later version; http://www.gnu.org/licenses/gpl-2.0.txt
@@ -45,13 +45,16 @@ if(window.top == window.self) {
 			var m = element.href.match(RE)
 			if(m && m[1] && m[2]) {
 				element.href = dd(m[1])
-				var barA = document.createElement('a')
-				barA.href = dd(m[2])
-				var barSpans = element.getElementsByClassName('rg_ilmn')
-				if(barSpans && barSpans[0]) {
-					barSpans[0].style.textDecoration = 'underline'
-					barSpans[0].parentNode.parentNode.appendChild(barA)
-					barA.appendChild(barSpans[0].parentNode)
+				var barSpan = element.getElementsByClassName('rg_ilmn')[0]
+				var barSpanGP = barSpan &&
+				 barSpan.parentNode && barSpan.parentNode.parentNode
+				//element.href might be changed back to redirect link 
+				if(barSpanGP && 'A' !== barSpanGP.tagName) {
+					var barA = document.createElement('a')
+					barA.href = dd(m[2])
+					barSpan.style.textDecoration = 'underline'
+					barSpanGP.appendChild(barA)
+					barA.appendChild(barSpan.parentNode)
 				}
 			}
 			//imagebox_bigimages
@@ -97,7 +100,7 @@ if(window.top == window.self) {
 		document.addEventListener(BLOCKED_EVENTS[i], function(event) {
 			var t = event.target
 			var aContainer = closest(t, function(e) {
-				return 'A' === e.nodeName 
+				return 'A' === e.nodeName
 				&& ('rg_l' === e.className || 'bia uh_rl' === e.className)
 			}, 4)
 			if(aContainer) {
