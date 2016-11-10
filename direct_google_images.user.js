@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.8
+// @version      0.9
 // @description  Provides direct links in Google Images. 
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
@@ -18,7 +18,14 @@ if(window.top == window.self) {
 	var BLOCKED_EVENTS = ['mousedown', 'click']
 	
 	function dd(url) {
-		return decodeURIComponent(decodeURIComponent(url))
+		var d1 = decodeURIComponent(url), d2
+		try {
+			d2 = decodeURIComponent(d1)
+		}
+		catch(malformed) {
+			return d1
+		}
+		return d2
 	}
 	
 	function closest(element, matchFunction, maxLevel) {
@@ -48,7 +55,7 @@ if(window.top == window.self) {
 				var barSpan = element.getElementsByClassName('rg_ilmn')[0]
 				var barSpanGP = barSpan &&
 				 barSpan.parentNode && barSpan.parentNode.parentNode
-				//element.href might be changed back to redirect link 
+				//element.href might be changed back to redirect link
 				if(barSpanGP && 'A' !== barSpanGP.tagName) {
 					var barA = document.createElement('a')
 					barA.href = dd(m[2])
