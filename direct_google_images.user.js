@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.9
+// @version      0.10
 // @description  Provides direct links in Google Images. 
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
@@ -40,7 +40,7 @@ if(window.top == window.self) {
 		return null
 	}
 	
-	function modifyGoogleImages() {
+	function handleChange() {
 		var a = document.getElementsByTagName('a')
 		for(var i = a.length - 1; i >= 0; i--) {
 			modifyGoogleImage(a[i])
@@ -67,7 +67,9 @@ if(window.top == window.self) {
 			//imagebox_bigimages
 			else if('bia uh_rl' == element.className) {
 				var linkContainer = element.parentNode && element.parentNode.nextSibling
-				if(linkContainer && 'rg_meta' == linkContainer.className) {
+				if(linkContainer && 
+						(' ' + linkContainer.className + ' ').indexOf(' rg_meta ') > -1
+				) {
 					m = linkContainer.innerHTML.match(RE_IMAGEBOX)
 					if(m && m[1]) {
 						element.href = m[1]
@@ -80,22 +82,14 @@ if(window.top == window.self) {
 	function monitor() {
 		MutationObserver = window.MutationObserver || window.WebKitMutationObserver
 		if(MutationObserver) {
-			var observer = new MutationObserver(function(mutations) {
-				modifyGoogleImages()
-			})
-			//tiny delay needed for firefox
-			setTimeout(function() {
-				var main = document.getElementById('main')
-				!main || observer.observe(main, {childList: true, subtree: true})
-				modifyGoogleImages()
-			}, 100)
+			var observer = new MutationObserver(handleChange)
+			observer.observe(document.documentElement, {childList: true, subtree: true})
 		}
 		//for chrome v18-, firefox v14-, internet explorer v11-, opera v15- and safari v6-
 		else {
-			setInterval(function() {
-				modifyGoogleImages()
-			}, 500)
+			setInterval(handleChange, 500)
 		}
+		handleChange()
 	}
 	//in case user clicks too early
 	var m = location.href.match(RE)
