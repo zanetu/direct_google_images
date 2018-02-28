@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.10
+// @version      0.11
 // @description  Provides direct links in Google Images. 
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
@@ -52,16 +52,13 @@ if(window.top == window.self) {
 			var m = element.href.match(RE)
 			if(m && m[1] && m[2]) {
 				element.href = dd(m[1])
-				var barSpan = element.getElementsByClassName('rg_ilmn')[0]
-				var barSpanGP = barSpan &&
-				 barSpan.parentNode && barSpan.parentNode.parentNode
-				//element.href might be changed back to redirect link
-				if(barSpanGP && 'A' !== barSpanGP.tagName) {
+				var barDiv = element.getElementsByClassName('rg_ilmbg')[0]
+				if(barDiv && 1 === barDiv.childNodes.length) {
 					var barA = document.createElement('a')
 					barA.href = dd(m[2])
-					barSpan.style.textDecoration = 'underline'
-					barSpanGP.appendChild(barA)
-					barA.appendChild(barSpan.parentNode)
+					barA.style.color = 'inherit'
+					barA.appendChild(barDiv.childNodes[0])
+					barDiv.appendChild(barA)
 				}
 			}
 			//imagebox_bigimages
