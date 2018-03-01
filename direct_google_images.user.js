@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.11
+// @version      0.12
 // @description  Provides direct links in Google Images. 
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
@@ -53,7 +53,7 @@ if(window.top == window.self) {
 			if(m && m[1] && m[2]) {
 				element.href = dd(m[1])
 				var barDiv = element.getElementsByClassName('rg_ilmbg')[0]
-				if(barDiv && 1 === barDiv.childNodes.length) {
+				if(barDiv && !barDiv.getElementsByTagName('a').length) {
 					var barA = document.createElement('a')
 					barA.href = dd(m[2])
 					barA.style.color = 'inherit'
