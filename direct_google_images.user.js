@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.12
+// @version      0.13
 // @description  Provides direct links in Google Images. 
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
@@ -15,7 +15,7 @@
 if(window.top == window.self) {
 	var RE = /imgres\?imgurl\=(http.+?)\&imgrefurl\=(http.+?)(\&|$)/i
 	var RE_IMAGEBOX = /\"ou\"\:\"(http.+?)\"/
-	var BLOCKED_EVENTS = ['mousedown', 'click']
+	var BLOCKED_EVENTS = ['mousedown', 'click', 'focus']
 	
 	function dd(url) {
 		var d1 = decodeURIComponent(url), d2
@@ -52,13 +52,9 @@ if(window.top == window.self) {
 			var m = element.href.match(RE)
 			if(m && m[1] && m[2]) {
 				element.href = dd(m[1])
-				var barDiv = element.getElementsByClassName('rg_ilmbg')[0]
-				if(barDiv && !barDiv.getElementsByTagName('a').length) {
-					var barA = document.createElement('a')
+				var barA = element.nextSibling
+				if(barA && barA.href && barA.className.indexOf(' irc-nic isr-rtc', -16) > -1) {
 					barA.href = dd(m[2])
-					barA.style.color = 'inherit'
-					barA.appendChild(barDiv.childNodes[0])
-					barDiv.appendChild(barA)
 				}
 			}
 			//imagebox_bigimages
@@ -99,7 +95,13 @@ if(window.top == window.self) {
 			var t = event.target
 			var aContainer = closest(t, function(e) {
 				return 'A' === e.nodeName
-				&& ('rg_l' === e.className || 'bia uh_rl' === e.className)
+				&& (
+						'rg_l' === e.className
+						//imagebox_bigimages
+						|| 'bia uh_rl' === e.className
+						//image origin
+						|| e.className.indexOf(' irc-nic isr-rtc', -16) > -1
+					)
 			}, 4)
 			if(aContainer) {
 				event.stopPropagation()
