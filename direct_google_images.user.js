@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.13
-// @description  Provides direct links in Google Images. 
+// @version      0.14
+// @description  Provides direct links in Google Images.
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
 // @license      GPL version 2 or any later version; http://www.gnu.org/licenses/gpl-2.0.txt
@@ -14,9 +14,9 @@
 //do not run in frames or iframes
 if(window.top == window.self) {
 	var RE = /imgres\?imgurl\=(http.+?)\&imgrefurl\=(http.+?)(\&|$)/i
-	var RE_IMAGEBOX = /\"ou\"\:\"(http.+?)\"/
-	var BLOCKED_EVENTS = ['mousedown', 'click', 'focus']
-	
+	var RE_SOURCE = /url\?(?:.*?\&)*?url\=(http.+?)(\&|$)/i
+	var WATCH_EVENTS = ['mouseenter', 'mousedown', 'click', 'focus', 'touchstart']
+
 	function dd(url) {
 		var d1 = decodeURIComponent(url), d2
 		try {
@@ -27,7 +27,7 @@ if(window.top == window.self) {
 		}
 		return d2
 	}
-	
+
 	function closest(element, matchFunction, maxLevel) {
 		var max = undefined === maxLevel ? Number.POSITIVE_INFINITY : parseInt(maxLevel) + 1
 		if(max > 0 && 'function' === typeof matchFunction) {
@@ -39,83 +39,70 @@ if(window.top == window.self) {
 		}
 		return null
 	}
-	
-	function handleChange() {
-		var a = document.getElementsByTagName('a')
-		for(var i = a.length - 1; i >= 0; i--) {
-			modifyGoogleImage(a[i])
-		}
-	}
-	
+
 	function modifyGoogleImage(element) {
 		if(element && element.href) {
 			var m = element.href.match(RE)
 			if(m && m[1] && m[2]) {
 				element.href = dd(m[1])
-				var barA = element.nextSibling
-				if(barA && barA.href && barA.className.indexOf(' irc-nic isr-rtc', -16) > -1) {
-					barA.href = dd(m[2])
-				}
+				setDirect(element)
+				return true
 			}
-			//imagebox_bigimages
-			else if('bia uh_rl' == element.className) {
-				var linkContainer = element.parentNode && element.parentNode.nextSibling
-				if(linkContainer && 
-						(' ' + linkContainer.className + ' ').indexOf(' rg_meta ') > -1
-				) {
-					m = linkContainer.innerHTML.match(RE_IMAGEBOX)
-					if(m && m[1]) {
-						element.href = m[1]
-					}
-				}
+			m = element.href.match(RE_SOURCE)
+			if(m && m[1]) {
+				element.href = dd(m[1])
+				setDirect(element)
+				return true
 			}
 		}
+		return false
 	}
-	
-	function monitor() {
-		MutationObserver = window.MutationObserver || window.WebKitMutationObserver
-		if(MutationObserver) {
-			var observer = new MutationObserver(handleChange)
-			observer.observe(document.documentElement, {childList: true, subtree: true})
-		}
-		//for chrome v18-, firefox v14-, internet explorer v11-, opera v15- and safari v6-
-		else {
-			setInterval(handleChange, 500)
-		}
-		handleChange()
+
+	function isDirect(e) {
+		return 'yes' === (e && e.getAttribute && e.getAttribute('direct'))
 	}
-	//in case user clicks too early
-	var m = location.href.match(RE)
-	if(m && m[1]) {
-		location.replace(dd(m[1]))
+
+	function setDirect(e) {
+		e && e.setAttribute && e.setAttribute('direct', 'yes')
 	}
+
+	function triggerMouseEvent(element, eventType) {
+		var event = new MouseEvent('mousedown', {
+			bubbles: true,
+			cancelable: true
+		})
+		element.dispatchEvent(event)
+	}
+
 	//override event handlers
-	for(var i = BLOCKED_EVENTS.length - 1; i >= 0; i--) {
-		document.addEventListener(BLOCKED_EVENTS[i], function(event) {
+	for(var i in WATCH_EVENTS) {
+		document.addEventListener(WATCH_EVENTS[i], function(event) {
 			var t = event.target
 			var aContainer = closest(t, function(e) {
 				return 'A' === e.nodeName
 				&& (
-						'rg_l' === e.className
-						//imagebox_bigimages
-						|| 'bia uh_rl' === e.className
-						//image origin
-						|| e.className.indexOf(' irc-nic isr-rtc', -16) > -1
+						//image; regex can be replaced by more recent classList.contains()
+						/(^|\s)islib(\s|$)/.test(e.className)
+						//image source
+						|| 'noopener' === e.getAttribute('rel')
 					)
-			}, 4)
-			if(aContainer) {
-				event.stopPropagation()
-				if('click' === event.type) {
-					modifyGoogleImage(aContainer)
+			}, 2)
+			if(!aContainer) return
+			if(isDirect(aContainer)) {
+				if('mouseenter' !== event.type) event.stopPropagation()
+				return
+			}
+			if('mouseenter' === event.type) {
+				if(!modifyGoogleImage(aContainer)) {
+					var observer = new MutationObserver(function(mutationRecords) {
+						for(var j in mutationRecords) {
+							modifyGoogleImage(mutationRecords[j].target)
+						}
+					})
+					observer.observe(aContainer, {attributes: true})
+					triggerMouseEvent(t, 'mousedown')
 				}
 			}
 		}, true)
-	}
-	//"@run-at document-start" is not fully supported
-	if('interactive' == document.readyState || 'complete' == document.readyState) {
-		monitor()
-	}
-	else {
-		document.addEventListener('DOMContentLoaded', monitor, false)
 	}
 }
