@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Direct Google Images
 // @namespace    http://greasyfork.org/en/users/461
-// @version      0.14
+// @version      0.99
 // @description  Provides direct links in Google Images.
 // @include      /^https?\:\/\/(www|encrypted)\.google\./
 // @author       zanetu
@@ -16,6 +16,7 @@ if(window.top == window.self) {
 	var RE = /imgres\?imgurl\=(http.+?)\&imgrefurl\=(http.+?)(\&|$)/i
 	var RE_SOURCE = /url\?(?:.*?\&)*?url\=(http.+?)(\&|$)/i
 	var WATCH_EVENTS = ['mouseenter', 'mousedown', 'click', 'focus', 'touchstart']
+	var clickCount = 0
 
 	function dd(url) {
 		var d1 = decodeURIComponent(url), d2
@@ -46,6 +47,7 @@ if(window.top == window.self) {
 			if(m && m[1] && m[2]) {
 				element.href = dd(m[1])
 				setDirect(element)
+				if(isClickedLast(element)) element.click()
 				return true
 			}
 			m = element.href.match(RE_SOURCE)
@@ -73,6 +75,14 @@ if(window.top == window.self) {
 		})
 		element.dispatchEvent(event)
 	}
+	
+	function isClickedLast(e) {
+		return clickCount == (e && e.getAttribute && e.getAttribute('click-number'))
+	}
+	
+	function cacheClick(e) {
+		e && e.setAttribute && e.setAttribute('click-number', ++clickCount)
+	}
 
 	//override event handlers
 	for(var i in WATCH_EVENTS) {
@@ -88,6 +98,12 @@ if(window.top == window.self) {
 					)
 			}, 2)
 			if(!aContainer) return
+			if('click' === event.type) {
+				//suppress unwanted side bar
+				event.stopPropagation()
+				//cache left clicks, ignoring keys like ctrl
+				if(0 === event.button) cacheClick(aContainer)
+			}
 			if(isDirect(aContainer)) {
 				if('mouseenter' !== event.type) event.stopPropagation()
 				return
